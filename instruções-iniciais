@@ -1,0 +1,55 @@
+**************** Objetivos e Requisitos **************
+
+
+------> Implementar um escalonador preemptivo Shortest Remaining Time First (SRTF)
+
+
+------------------------------------------------------------------------------------------------
+Este objetivo consiste em implementar um escalonador preemptivo Shortest
+Remaining Time First (SRTF) no PingPongOS.
+
+As seguintes operações devem ser implementadas:
+	1. Uma função scheduler que analisa a fila de tarefas prontas, devolvendo um ponteiro
+	para a próxima tarefa a receber o processador.
+	
+	2. Funções para consulta e ajuste do tempo de execução (todas deve ser criadas):
+		a. void task_set_eet (task_t *task, int et) - Esta função ajusta
+		a prioridade com base no tempo de execução total estimado para da tarefa. Caso
+		task seja nulo, ajusta a prioridade da tarefa atual. Quando a tarefa já está e
+		execução, essa função deve sobrescrever tanto o valor estimado do tempo de
+		execução como também o valor do tempo que ainda resta para a tarefa terminar
+		sua execução.
+		
+		b. int task_get_eet(task_t *task) - Esta função devolve o valor do
+		tempo estimado de execução da tarefa task (ou da tarefa corrente, se task for
+		nulo).
+		
+		c. int task_get_ret(task_t *task) - Esta função devolve o valor do
+		tempo restante para terminar a execução da tarefa task (ou da tarefa corrente,
+		se task for nulo).
+
+Observações:
+	• O sistema deve contabilizar o tempo de execução (e o tempo que resta para
+	terminar a execução) de cada tarefa, ou seja, quando a tarefa recebe o 
+	processador, o sistema deve iniciar a contagem do tempo de execução da tarefa
+	e também do tempo restante para seu término.
+	
+	• Para a contabilização você precisará de uma referência de tempo (um relógio).
+	
+	• Ao ser criada, cada tarefa recebe a o tempo de execução padrão (99999).
+	
+	• Inicialmente e temporariamente, crie um programa de testes baseado em
+	pingpong-scheduler.c. O programa de testes deve testar corretamente a
+	contabilização do tempo de execução (e do tempo restante para terminar a
+	execução) de cada uma das cinco tarefas. Em até 2 semanas do prazo de entrega
+	do trabalho, o professor irá fornecer o programa de teste que será utilizado para
+	a defesa do projeto.
+
+
+
+
+	/init timer;
+	baseado no timer.c
+
+
+	/handler-> tratador, baseado em milissegundos
