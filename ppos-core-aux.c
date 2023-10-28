@@ -5,7 +5,71 @@
 // ****************************************************************************
 // Coloque aqui as suas modificações, p.ex. includes, defines variáveis, 
 // estruturas e funções
+#include <signal.h>
+#include <sys/time.h>
 
+struct sigaction action ;
+struct itimerval timer ;
+
+task_t * scheduler(){
+
+    if(readyQueue == NULL)
+        return NULL;
+
+    task_t *next_task = readyQueue;
+    task_t *task_aux = readyQueue->next; 
+    
+    while(task_aux != NULL && task_aux != readyQueue){
+        if(task_get_ret(task_aux) < task_get_ret(next_task)){
+            next_task = task_aux;
+        }
+        task_aux = task_aux->next;
+    }
+
+    if(next_task->id == taskDisp->id)
+        preemption = 0;
+    else
+        preemption = 1;
+
+    next_task->quantum = 20;
+    (next_task->activations)++;
+
+    return next_task;
+}
+    
+
+void signal_handler(int signal_num){
+
+    systemTime++;
+
+    if(preemption == 1 && ((taskExec->quantum == 0) || (task_get_ret(taskExec) == 0))){
+        task_yield();
+    }
+    
+    (taskExec->processor_time)++;
+    (taskExec->quantum)--;
+}
+
+void task_set_eet (task_t *task, int et){
+    if(task == NULL){
+        task = taskExec;
+    }else{
+        task->est_exec_time = et;
+    }
+}
+
+int task_get_eet(task_t *task){
+    if(task == NULL)
+        task = taskExec;
+    return task->est_exec_time;
+}
+
+int task_get_ret(task_t *task){
+    if(task == NULL)
+        task = taskExec;
+    task->remaining_time = task_get_eet(task) - task->processor_time;
+    return task->remaining_time;
+}
 
 // ****************************************************************************
 
@@ -20,6 +84,29 @@ void before_ppos_init () {
 
 void after_ppos_init () {
     // put your customization here
+    task_set_eet(taskExec, 99999);
+    action.sa_handler = signal_handler;
+    sigemptyset (&action.sa_mask);
+    action.sa_flags = 0;
+  if (sigaction (SIGALRM, &action, 0) < 0)
+  {
+    perror ("Erro em sigaction: ");
+    exit (1);
+  }
+
+  // ajusta valores do temporizador
+  timer.it_value.tv_usec = 1000 ;      // primeiro disparo, em micro-segundos
+  timer.it_value.tv_sec  = 0 ;      // primeiro disparo, em segundos
+  timer.it_interval.tv_usec = 1000 ;   // disparos subsequentes, em micro-segundos
+  timer.it_interval.tv_sec  = 0 ;   // disparos subsequentes, em segundos
+
+  // arma o temporizador ITIMER_REAL (vide man setitimer)
+  if (setitimer (ITIMER_REAL, &timer, 0) < 0)
+  {
+    perror ("Erro em setitimer: ") ;
+    exit (1) ;
+  }
+
 #ifdef DEBUG
     printf("\ninit - AFTER");
 #endif
@@ -34,6 +121,10 @@ void before_task_create (task_t *task ) {
 
 void after_task_create (task_t *task ) {
     // put your customization here
+    task->processor_time = 0;
+    task->execution_time = 0;
+    task->creation_systime = systime();
+    task->activations = 0;
 #ifdef DEBUG
     printf("\ntask_create - AFTER - [%d]", task->id);
 #endif
@@ -41,6 +132,7 @@ void after_task_create (task_t *task ) {
 
 void before_task_exit () {
     // put your customization here
+    taskExec->execution_time = systime() - taskExec->creation_systime;
 #ifdef DEBUG
     printf("\ntask_exit - BEFORE - [%d]", taskExec->id);
 #endif
@@ -48,6 +140,7 @@ void before_task_exit () {
 
 void after_task_exit () {
     // put your customization here
+    printf("\nTask %d exit: execution time %d ms, processor time %d ms, %d activations.\n", taskExec->id, taskExec->execution_time, taskExec->processor_time, taskExec->activations);
 #ifdef DEBUG
     printf("\ntask_exit - AFTER- [%d]", taskExec->id);
 #endif
@@ -396,12 +489,13 @@ int after_mqueue_msgs (mqueue_t *queue) {
     return 0;
 }
 
-task_t * scheduler() {
-    // FCFS scheduler
-    if ( readyQueue != NULL ) {
-        return readyQueue;
-    }
-    return NULL;
-}
+// task_t * scheduler() {
+    
+//     // FCFS scheduler
+//     // if ( readyQueue != NULL ) {
+//     //     return readyQueue;
+//     // }
+//     // return NULL;
+// }
 
 
