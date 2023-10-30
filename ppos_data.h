@@ -15,24 +15,24 @@
 typedef struct task_t
 {
    struct task_t *prev, *next ;		// ponteiros para usar em filas
-   int id ;				// identificador da tarefa
-   ucontext_t context ;			// contexto armazenado da tarefa
-   unsigned char state;  // indica o estado de uma tarefa (ver defines no final do arquivo ppos.h): 
-                          // n - nova, r - pronta, x - executando, s - suspensa, e - terminada
+   int id ;				            // identificador da tarefa
+   ucontext_t context ;			    // contexto armazenado da tarefa
+   unsigned char state;             // indica o estado de uma tarefa (ver defines no final do arquivo ppos.h): 
+                                        // n - nova, r - pronta, x - executando, s - suspensa, e - terminada
    struct task_t* queue;
    struct task_t* joinQueue;
    int exitCode;
-   unsigned int awakeTime; // used to store the time when it should be waked up
+   unsigned int awakeTime;          // used to store the time when it should be waked up
 
    // ... (outros campos deve ser adicionados APOS esse comentario)
-   int quantum;
-   int processor_time;
-   int execution_time;
-   int est_exec_time;
-   int remaining_time;
-   int creation_systime;
-   int activations;
-  
+   int quantum;                    
+   int processor_time;   // Tempo de processador
+   int execution_time;   // Tempo de execução
+   int est_exec_time;    // Tempo estimado de execução
+   int remaining_time;   // Tempo de processador restante
+   int creation_systime; // Horário de criação da tarefa
+   int activations;      // Número de ativações
+   
 } task_t ;
 
 // estrutura que define um semáforo

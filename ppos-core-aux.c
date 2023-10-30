@@ -7,10 +7,13 @@
 // estruturas e funções
 #include <signal.h>
 #include <sys/time.h>
+#define QUANTUM 20
+#define DEFAULT_EXEC_TIME 99999
 
 struct sigaction action ;
 struct itimerval timer ;
 
+// Escalonador SRTF (Shortest Remaining Time First);
 task_t * scheduler(){
 
     if(readyQueue == NULL)
@@ -20,29 +23,32 @@ task_t * scheduler(){
     task_t *task_aux = readyQueue->next; 
     
     while(task_aux != NULL && task_aux != readyQueue){
+        // Seleciona a tarefa com o menor tempo de execução restante
         if(task_get_ret(task_aux) < task_get_ret(next_task)){
             next_task = task_aux;
         }
         task_aux = task_aux->next;
     }
 
+    // Verifica se a tarefa corresponde ao dispatcher e portanto se deve ser preemptada;
     if(next_task->id == taskDisp->id)
         preemption = 0;
     else
         preemption = 1;
 
-    next_task->quantum = 20;
+    next_task->quantum = QUANTUM;
     (next_task->activations)++;
 
     return next_task;
 }
-    
 
+// Tratador de sinal, responsável pelo tempo de execução das tarefas;
 void signal_handler(int signal_num){
 
     systemTime++;
 
-    if(preemption == 1 && ((taskExec->quantum == 0) || (task_get_ret(taskExec) == 0))){
+    // Verifica se a preempção deve ocorrer (user task) e se o quantum acabou;
+    if(preemption == 1 && (taskExec->quantum == 0)){
         task_yield();
     }
     
@@ -50,24 +56,27 @@ void signal_handler(int signal_num){
     (taskExec->quantum)--;
 }
 
+// Ajusta o valor estimado do tempo de execução e o valor do tempo restante para a tarefa terminar;
 void task_set_eet (task_t *task, int et){
     if(task == NULL){
         task = taskExec;
     }else{
         task->est_exec_time = et;
+        task->remaining_time = et - task->processor_time;
     }
 }
 
+// Retorna o valor do tempo estimado de execução da tarefa;
 int task_get_eet(task_t *task){
     if(task == NULL)
         task = taskExec;
     return task->est_exec_time;
 }
 
+// Retorna o valor do tempo restante para terminar a execução da tarefa;
 int task_get_ret(task_t *task){
     if(task == NULL)
         task = taskExec;
-    task->remaining_time = task_get_eet(task) - task->processor_time;
     return task->remaining_time;
 }
 
@@ -84,7 +93,9 @@ void before_ppos_init () {
 
 void after_ppos_init () {
     // put your customization here
-    task_set_eet(taskExec, 99999);
+    printf("PPOS intialized successfully...");
+
+    task_set_eet(taskExec, DEFAULT_EXEC_TIME);
     action.sa_handler = signal_handler;
     sigemptyset (&action.sa_mask);
     action.sa_flags = 0;
@@ -95,10 +106,10 @@ void after_ppos_init () {
   }
 
   // ajusta valores do temporizador
-  timer.it_value.tv_usec = 1000 ;      // primeiro disparo, em micro-segundos
-  timer.it_value.tv_sec  = 0 ;      // primeiro disparo, em segundos
-  timer.it_interval.tv_usec = 1000 ;   // disparos subsequentes, em micro-segundos
-  timer.it_interval.tv_sec  = 0 ;   // disparos subsequentes, em segundos
+  timer.it_value.tv_usec = 1000 ;       // primeiro disparo, em micro-segundos
+  timer.it_value.tv_sec  = 0 ;          // primeiro disparo, em segundos
+  timer.it_interval.tv_usec = 1000 ;    // disparos subsequentes, em micro-segundos
+  timer.it_interval.tv_sec  = 0 ;       // disparos subsequentes, em segundos
 
   // arma o temporizador ITIMER_REAL (vide man setitimer)
   if (setitimer (ITIMER_REAL, &timer, 0) < 0)
@@ -121,6 +132,8 @@ void before_task_create (task_t *task ) {
 
 void after_task_create (task_t *task ) {
     // put your customization here
+    // Inicialização das variáveis do tempo de processador, de execução, 
+    // horário de criação da tarefa e número de ativações
     task->processor_time = 0;
     task->execution_time = 0;
     task->creation_systime = systime();
@@ -132,7 +145,6 @@ void after_task_create (task_t *task ) {
 
 void before_task_exit () {
     // put your customization here
-    taskExec->execution_time = systime() - taskExec->creation_systime;
 #ifdef DEBUG
     printf("\ntask_exit - BEFORE - [%d]", taskExec->id);
 #endif
@@ -140,6 +152,8 @@ void before_task_exit () {
 
 void after_task_exit () {
     // put your customization here
+    taskExec->execution_time = systime() - taskExec->creation_systime;
+    // Imprime os dados de execução da tarefa
     printf("\nTask %d exit: execution time %d ms, processor time %d ms, %d activations.\n", taskExec->id, taskExec->execution_time, taskExec->processor_time, taskExec->activations);
 #ifdef DEBUG
     printf("\ntask_exit - AFTER- [%d]", taskExec->id);
